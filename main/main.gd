@@ -13,7 +13,10 @@ func _ready() -> void:
 	_init_pos = $Icon.global_position
 	for i in range(1e2):
 		input.append(i)
-	cs.data_received.connect(func(o): input = o)
+	cs.task_completed.connect(func(d: Dictionary):
+		var res := (d[0] as PackedByteArray).to_float32_array()
+		input = res
+	)
 	_timer.timeout.connect(func():
 		_gpu_fps = input[0] - _last_tick
 		_last_tick = input[0]
@@ -22,8 +25,9 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	var total_elements := input.size()
 	var res := sin(deg_to_rad(input[0]))
-	cs.set_input(input, PackedInt32Array([total_elements, 0, 0, 0]))
-	cs.dispatch()
+	cs.set_buffer(0, input)
+	cs.set_constants(PackedInt32Array([total_elements]))
+	cs.dispatch(ceil(input.size() / 64.0))
 
 	_fps()
 	
